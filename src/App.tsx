@@ -48,6 +48,7 @@ export default function App() {
   const [bookIsbn, setBookIsbn] = useState('');
   const [bookCatId, setBookCatId] = useState('');
   const [bookCopies, setBookCopies] = useState(3);
+  const [bookCoverFile, setBookCoverFile] = useState<File | null>(null);
 
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
@@ -159,18 +160,24 @@ export default function App() {
     e.preventDefault();
     if (!token) return;
     try {
-      await api.createBookApi(token, {
+      const createdBook = await api.createBookApi(token, {
         title: bookTitle,
         author: bookAuthor,
         isbn: bookIsbn,
         category_id: bookCatId || categories[0]?.id || '',
         total_copies: Number(bookCopies),
       });
-      notify('Libro registrado en el catálogo.');
+
+      if (bookCoverFile && createdBook?.id) {
+        await api.uploadCoverApi(token, createdBook.id, bookCoverFile);
+      }
+
+      notify('Libro y portada registrados exitosamente en el catálogo.');
       setShowBookModal(false);
       setBookTitle('');
       setBookAuthor('');
       setBookIsbn('');
+      setBookCoverFile(null);
       loadAll();
     } catch (err: any) {
       notify(err.message || 'Error al crear libro', 'error');
@@ -430,7 +437,16 @@ export default function App() {
                     {loans.map((ln) => (
                       <tr key={ln.id}>
                         <td>
-                          <code>{ln.id.substring(0, 8)}...</code>
+                          <code
+                            className="uuid-badge"
+                            title="Haz clic para copiar el ID completo"
+                            onClick={() => {
+                              navigator.clipboard.writeText(ln.id);
+                              notify('ID copiado al portapapeles');
+                            }}
+                          >
+                            {ln.id}
+                          </code>
                         </td>
                         <td>{new Date(ln.loaned_at).toLocaleString()}</td>
                         <td>
@@ -518,6 +534,15 @@ export default function App() {
               <button className="btn-secondary" onClick={loadAll}>
                 Buscar
               </button>
+              {role === 'admin' && (
+                <button
+                  className="btn-primary"
+                  style={{ width: 'auto', marginLeft: 'auto' }}
+                  onClick={() => setShowBookModal(true)}
+                >
+                  + Registrar Libro
+                </button>
+              )}
             </div>
 
             <div className="books-grid">
@@ -930,7 +955,7 @@ export default function App() {
                 </select>
               </div>
               <div className="form-group">
-                <label>Total de Ejemplares (≥ 1)</label>
+                <label>Total de Ejemplares (Stock ≥ 1)</label>
                 <input
                   type="number"
                   min={1}
@@ -938,6 +963,17 @@ export default function App() {
                   onChange={(e) => setBookCopies(Number(e.target.value))}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label>📷 Imagen de Portada (JPG o PNG, opcional)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={(e) => setBookCoverFile(e.target.files?.[0] || null)}
+                />
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginTop: '0.25rem' }}>
+                  Puedes cargar la imagen de portada directamente aquí o cambiarla luego en el catálogo.
+                </small>
               </div>
 
               <div className="modal-actions">
