@@ -277,20 +277,38 @@ export default function App() {
     }
   }
 
-  // Delete / Disable User
+  // Toggle User Status (Habilitar / Deshabilitar)
+  async function handleToggleUserStatus(id: string, username: string, currentStatus: boolean) {
+    if (!token) return;
+    if (username.toLowerCase() === 'admin') {
+      notify('El usuario administrador principal no puede ser deshabilitado.', 'error');
+      return;
+    }
+    const actionText = currentStatus ? 'deshabilitar' : 'habilitar';
+    if (!confirm(`¿Deseas ${actionText} la cuenta del usuario «${username}»?`)) return;
+    try {
+      await api.toggleUserStatusApi(token, id);
+      notify(`Usuario «${username}» ${currentStatus ? 'deshabilitado' : 'habilitado'} con éxito.`);
+      loadAll();
+    } catch (err: any) {
+      notify(err.message || `Error al ${actionText} usuario`, 'error');
+    }
+  }
+
+  // Delete User (Eliminar permanentemente)
   async function handleDeleteUser(id: string, username: string) {
     if (!token) return;
     if (username.toLowerCase() === 'admin') {
-      notify('El usuario administrador principal no puede ser eliminado ni deshabilitado.', 'error');
+      notify('El usuario administrador principal no puede ser eliminado.', 'error');
       return;
     }
-    if (!confirm(`¿Estás segura de eliminar/deshabilitar al usuario «${username}» del sistema?`)) return;
+    if (!confirm(`⚠️ ¿Estás segura de eliminar PERMANENTEMENTE al usuario «${username}»?\n\nNota: Si este usuario ya tiene préstamos históricos registrados, el sistema de base de datos protegerá la integridad de los datos.`)) return;
     try {
       await api.deleteUserApi(token, id);
       notify(`Usuario «${username}» eliminado con éxito.`);
       loadAll();
     } catch (err: any) {
-      notify(err.message || 'Error al eliminar usuario', 'error');
+      notify(err.message || 'Error al eliminar usuario. Puede que tenga préstamos vinculados (se recomienda deshabilitarlo en su lugar).', 'error');
     }
   }
 
@@ -906,7 +924,15 @@ export default function App() {
                             </span>
                           </td>
                           <td>
-                            <span className="text-success">✅ Activo / Habilitado</span>
+                            {u.is_active ? (
+                              <span className="text-success" style={{ fontWeight: 600 }}>
+                                ✅ Activo / Habilitado
+                              </span>
+                            ) : (
+                              <span className="text-danger" style={{ fontWeight: 600 }}>
+                                ⛔ Deshabilitado
+                              </span>
+                            )}
                           </td>
                           <td>
                             {u.username.toLowerCase() === 'admin' ? (
@@ -924,12 +950,22 @@ export default function App() {
                                 🔒 Superadmin (Protegido)
                               </span>
                             ) : (
-                              <button
-                                className="btn-danger-sm"
-                                onClick={() => handleDeleteUser(u.id, u.username)}
-                              >
-                                🗑️ Deshabilitar / Eliminar
-                              </button>
+                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <button
+                                  className={u.is_active ? 'btn-sm btn-outline' : 'btn-sm btn-primary'}
+                                  onClick={() => handleToggleUserStatus(u.id, u.username, u.is_active)}
+                                  title={u.is_active ? 'Deshabilitar acceso a este usuario' : 'Habilitar acceso a este usuario'}
+                                >
+                                  {u.is_active ? '🚫 Deshabilitar' : '✅ Habilitar'}
+                                </button>
+                                <button
+                                  className="btn-danger-sm"
+                                  onClick={() => handleDeleteUser(u.id, u.username)}
+                                  title="Eliminar definitivamente este usuario"
+                                >
+                                  🗑️ Eliminar
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>

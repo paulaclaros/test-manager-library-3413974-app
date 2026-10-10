@@ -76,4 +76,5 @@ export interface UserItem {
   id: string;
   username: string;
   role: Role;
+  is_active: boolean;
 }
