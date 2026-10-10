@@ -300,25 +300,25 @@ export default function App() {
             className={activeTab === 'loans' ? 'active' : ''}
             onClick={() => setActiveTab('loans')}
           >
-            📋 Préstamos ({loans.length})
+            📋 Préstamos
           </button>
           <button
             className={activeTab === 'books' ? 'active' : ''}
             onClick={() => setActiveTab('books')}
           >
-            📖 Catálogo ({books.length})
+            📖 Catálogo
           </button>
           <button
             className={activeTab === 'members' ? 'active' : ''}
             onClick={() => setActiveTab('members')}
           >
-            👥 Socios ({members.length})
+            👥 Socios
           </button>
           <button
             className={activeTab === 'overdue' ? 'active' : ''}
             onClick={() => setActiveTab('overdue')}
           >
-            ⚠️ Vencidos ({overdueItems.length})
+            ⚠️ Vencidos
           </button>
           {role === 'admin' && (
             <>
