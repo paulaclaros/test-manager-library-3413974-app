@@ -7,6 +7,7 @@ import {
   OverdueItem,
   ReportRow,
   Role,
+  UserItem,
 } from './types';
 import * as api from './api';
 
@@ -30,6 +31,7 @@ export default function App() {
   const [reportRows, setReportRows] = useState<ReportRow[]>([]);
   const [reportFrom, setReportFrom] = useState('2026-10-01');
   const [reportTo, setReportTo] = useState('2026-10-31');
+  const [systemUsers, setSystemUsers] = useState<UserItem[]>([]);
 
   // Filters & Search
   const [bookQuery, setBookQuery] = useState('');
@@ -117,6 +119,10 @@ export default function App() {
       setMembers(mems);
       setLoans(lns);
       setOverdueItems(ovd);
+
+      if (role === 'admin') {
+        api.getUsersApi(token).then((r) => setSystemUsers(r.items)).catch(() => []);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -265,8 +271,26 @@ export default function App() {
       notify(`Bibliotecario «${newLibUser}» creado exitosamente.`);
       setNewLibUser('');
       setNewLibPass('');
+      loadAll();
     } catch (err: any) {
       notify(err.message || 'Error al crear bibliotecario', 'error');
+    }
+  }
+
+  // Delete / Disable User
+  async function handleDeleteUser(id: string, username: string) {
+    if (!token) return;
+    if (username.toLowerCase() === 'admin') {
+      notify('El usuario administrador principal no puede ser eliminado ni deshabilitado.', 'error');
+      return;
+    }
+    if (!confirm(`¿Estás segura de eliminar/deshabilitar al usuario «${username}» del sistema?`)) return;
+    try {
+      await api.deleteUserApi(token, id);
+      notify(`Usuario «${username}» eliminado con éxito.`);
+      loadAll();
+    } catch (err: any) {
+      notify(err.message || 'Error al eliminar usuario', 'error');
     }
   }
 
@@ -790,42 +814,131 @@ export default function App() {
           <section className="card-panel">
             <div className="panel-header">
               <div>
-                <h3>👤 Gestión de Usuarios Internos</h3>
-                <p>Creación de cuentas para personal bibliotecario (HU-02).</p>
+                <h3>👤 Gestión y Administración de Usuarios</h3>
+                <p>Cuentas de acceso, creación de bibliotecarios y control de permisos (HU-02).</p>
               </div>
             </div>
 
-            <form onSubmit={handleRegisterLibrarian} className="form-grid">
-              <div className="form-group">
-                <label>Nombre de Usuario</label>
-                <input
-                  type="text"
-                  placeholder="ej. carlos"
-                  value={newLibUser}
-                  onChange={(e) => setNewLibUser(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Contraseña</label>
-                <input
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={newLibPass}
-                  onChange={(e) => setNewLibPass(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Rol Asignado</label>
-                <input type="text" value="librarian" disabled />
-              </div>
-              <div className="form-group align-end">
-                <button type="submit" className="btn-primary">
-                  Crear Bibliotecario
+            <div style={{ marginBottom: '2.5rem' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#0f172a' }}>
+                + Registrar Nuevo Bibliotecario
+              </h4>
+              <form onSubmit={handleRegisterLibrarian} className="form-grid">
+                <div className="form-group">
+                  <label>Nombre de Usuario</label>
+                  <input
+                    type="text"
+                    placeholder="ej. carlos"
+                    value={newLibUser}
+                    onChange={(e) => setNewLibUser(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={newLibPass}
+                    onChange={(e) => setNewLibPass(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Rol Asignado</label>
+                  <input type="text" value="librarian" disabled />
+                </div>
+                <div className="form-group align-end">
+                  <button type="submit" className="btn-primary">
+                    Crear Bibliotecario
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '2rem 0' }} />
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                  👥 Directorio de Cuentas del Sistema ({systemUsers.length})
+                </h4>
+                <button className="btn-sm btn-outline" onClick={loadAll}>
+                  🔄 Actualizar Lista
                 </button>
               </div>
-            </form>
+
+              {systemUsers.length === 0 ? (
+                <p className="empty-state">No se cargaron usuarios adicionales o la lista está vacía.</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID de Usuario</th>
+                        <th>Nombre de Usuario</th>
+                        <th>Rol Asignado</th>
+                        <th>Estado de Cuenta</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {systemUsers.map((u) => (
+                        <tr key={u.id}>
+                          <td>
+                            <code
+                              className="uuid-badge"
+                              title="Haz clic para copiar el ID de usuario"
+                              onClick={() => {
+                                navigator.clipboard.writeText(u.id);
+                                notify('ID de usuario copiado al portapapeles');
+                              }}
+                            >
+                              {u.id}
+                            </code>
+                          </td>
+                          <td>
+                            <strong>{u.username}</strong>
+                          </td>
+                          <td>
+                            <span className={`badge-role ${u.role}`}>
+                              {u.role.toUpperCase()}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="text-success">✅ Activo / Habilitado</span>
+                          </td>
+                          <td>
+                            {u.username.toLowerCase() === 'admin' ? (
+                              <span
+                                style={{
+                                  fontSize: '0.8rem',
+                                  color: 'var(--text-muted)',
+                                  fontWeight: 600,
+                                  background: '#f1f5f9',
+                                  padding: '0.3rem 0.6rem',
+                                  borderRadius: '6px',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                🔒 Superadmin (Protegido)
+                              </span>
+                            ) : (
+                              <button
+                                className="btn-danger-sm"
+                                onClick={() => handleDeleteUser(u.id, u.username)}
+                              >
+                                🗑️ Deshabilitar / Eliminar
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </section>
         )}
       </main>

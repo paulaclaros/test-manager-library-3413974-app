@@ -71,3 +71,9 @@ export interface ApiError {
   message: string;
   details?: Array<{ field: string; issue: string }>;
 }
+
+export interface UserItem {
+  id: string;
+  username: string;
+  role: Role;
+}

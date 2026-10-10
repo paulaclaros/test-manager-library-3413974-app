@@ -162,3 +162,17 @@ export async function deleteCoverApi(token: string, bookId: string): Promise<voi
   });
   if (!res.ok) throw await res.json();
 }
+
+export async function getUsersApi(token: string): Promise<{ items: { id: string; username: string; role: string }[]; total: number }> {
+  const res = await fetch(`${API_BASE}/users`, { headers: getHeaders(token) });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function deleteUserApi(token: string, id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(token),
+  });
+  if (!res.ok) throw await res.json();
+}
