@@ -189,6 +189,31 @@ export default function App() {
     }
   }
 
+  // Upload Book Cover
+  async function handleUploadCover(bookId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    try {
+      await api.uploadCoverApi(token, bookId, file);
+      notify('Portada actualizada exitosamente.');
+      loadAll();
+    } catch (err: any) {
+      notify(err.message || 'Error al subir la portada', 'error');
+    }
+  }
+
+  // Delete Book Cover
+  async function handleDeleteCover(bookId: string) {
+    if (!token || !confirm('¿Eliminar la portada de este libro?')) return;
+    try {
+      await api.deleteCoverApi(token, bookId);
+      notify('Portada eliminada correctamente.');
+      loadAll();
+    } catch (err: any) {
+      notify(err.message || 'Error al eliminar la portada', 'error');
+    }
+  }
+
   // Create Member
   async function handleCreateMember(e: React.FormEvent) {
     e.preventDefault();
@@ -523,6 +548,24 @@ export default function App() {
                     </div>
                     {role === 'admin' && (
                       <div className="card-actions">
+                        <label className="btn-sm btn-outline" style={{ cursor: 'pointer', textAlign: 'center' }}>
+                          📷 Portada
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            style={{ display: 'none' }}
+                            onChange={(e) => handleUploadCover(b.id, e)}
+                          />
+                        </label>
+                        {b.cover_key && (
+                          <button
+                            className="btn-sm btn-outline"
+                            title="Quitar portada"
+                            onClick={() => handleDeleteCover(b.id)}
+                          >
+                            🗑️
+                          </button>
+                        )}
                         <button
                           className="btn-danger-sm"
                           onClick={() => handleDeleteBook(b.id)}

@@ -138,3 +138,27 @@ export async function registerUserApi(token: string, data: { username: string; p
   });
   if (!res.ok) throw await res.json();
 }
+
+export async function uploadCoverApi(token: string, bookId: string, file: File): Promise<Book> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('_method', 'PUT');
+  const res = await fetch(`${API_BASE}/books/${bookId}/cover`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    },
+    body: formData,
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function deleteCoverApi(token: string, bookId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/books/${bookId}/cover`, {
+    method: 'DELETE',
+    headers: getHeaders(token),
+  });
+  if (!res.ok) throw await res.json();
+}
